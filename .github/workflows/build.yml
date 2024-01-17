@@ -1,8 +1,10 @@
 name: Build
+
 on:
   push:
     tags:
-      - 'v*' 
+      - 'v*'
+
 jobs:
   build:
     name: Build App
@@ -22,18 +24,19 @@ jobs:
         ref: 8771215f765e774bfefdacc6ddf0e151c2973d49
         path: theos
         submodules: recursive
-    - name: Download SDKs
-      run: |
-        curl -LO https://github.com/SamHep0803/iOS-13-Patched-SDK/archive/master.zip
-        TMP=$(mktemp -d)
-        unzip master.zip -d $TMP
-        mv $TMP/iOS-13-Patched-SDK-master/*.sdk theos/sdks
-        rm -r master.zip $TMP
+    - name: Download SDK
+      uses: actions/checkout@master
+      with:
+        repository: Itaybre/iPhoneOS13.3.sdk
+        ref: 883201e5f94742401cb9a85bdaefd2c8ed3461ba
+        path: theos/sdks/iPhoneOS13.3.sdk
     - name: Build Package
       id: build_package
-      run: |
+      run: | 
         make package FINALPACKAGE=1
         echo "::set-output name=package::$(ls -t packages | head -n1)"
+      env:
+        THEOS: theos
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
@@ -45,11 +48,12 @@ jobs:
         draft: false
         prerelease: false
     - name: Upload Release Asset
+      id: upload-release-asset 
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}          
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: ./packages/${{ steps.build_package.outputs.package }}
         asset_name: ${{ steps.build_package.outputs.package }}
         asset_content_type: application/vnd.debian.binary-package
